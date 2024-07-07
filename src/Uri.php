@@ -134,8 +134,8 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getUserInfo(int $flags = 0): string
     {
-        $user = $this->formatComponent($this->uriOutput($this->user, $flags));
-        $pass = $this->formatComponent($this->uriOutput($this->pass ?? '', $flags), ':');
+        $user = $this->formatComponent($this->uriEncode($this->user, $flags));
+        $pass = $this->formatComponent($this->uriEncode($this->pass ?? '', $flags), ':');
         return $user === '' ? '' : "{$user}{$pass}";
     }
 
@@ -187,7 +187,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         if ($flags & self::ABSOLUTE_PATH && substr($path, 0, 1) !== '/') {
             $path = "/{$path}";
         }
-        return $this->uriOutput($path, $flags, '\/:@');
+        return $this->uriEncode($path, $flags, '\/:@');
     }
 
     /**
@@ -197,7 +197,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getQuery(int $flags = 0): string
     {
-        return $this->uriOutput($this->query, $flags, '\/:@?');
+        return $this->uriEncode($this->query, $flags, '\/:@?');
     }
 
     /**
@@ -207,7 +207,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getFragment(int $flags = 0): string
     {
-        return $this->uriOutput($this->fragment, $flags, '\/:@?'); ;
+        return $this->uriEncode($this->fragment, $flags, '\/:@?');
     }
 
 
@@ -582,7 +582,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         return $clone;
     }
 
-    private function uriOutput(string $source, int $flags = 0, string $keep = ''): string
+    private function uriEncode(string $source, int $flags = 0, string $keep = ''): string
     {
         if ($flags & self::URI_DECODE) {
             return $source;
@@ -600,19 +600,6 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         }
         return preg_replace_callback($re, function ($matches) {
             return rawurlencode($matches[0]);
-        }, $source);
-    }
-
-    private function uriEncode(string $source, int $flags = 0, string $keep = ''): string
-    {
-        $exclude = "[^%\/:=&!\$'()*+,;@{$keep}]+";
-        $exp = "/(%{$exclude})|({$exclude})/";
-        return preg_replace_callback($exp, function ($matches) {
-            if ($e = preg_match('/^(%[0-9a-fA-F]{2})/', $matches[0], $m)) {
-                return substr($matches[0], 0, 3) . rawurlencode(substr($matches[0], 3));
-            } else {
-                return rawurlencode($matches[0]);
-            }
         }, $source);
     }
 
