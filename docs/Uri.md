@@ -327,6 +327,36 @@ echo "{$uri->getAuthority()} \n"; // -> "user:pwd@domain.tld:1234"
 
 All `get`, `with` and the `toString()` methods accept option flags.
 
+### URI encode/decode options
+
+These options apply to all components that are to be URI encoded.
+
+#### The `IDN_DECODE` option
+
+Option will return decoded text.
+```php
+$uri = new Uri('http://example.com/?a=%C3%B6%3C');
+echo "{$uri->getQuery(Uri::IDN_DECODE)} \n"; // -> "a=ö<"
+```
+
+#### The `IDN_ENCODE` option
+
+Option will return minimal encoded text, not encoding non-ascii letter characters.
+```php
+$uri = new Uri('http://example.com/?a=ö<');
+echo "{$uri->getQuery(Uri::IDN_ENCODE)} \n"; // -> "a=ö%3C"
+```
+
+#### The `URI_ENCODE_3986` option
+
+Option will return fully encoded non-ascii characters.
+This is the default return if no option flag is specified.
+```php
+$uri = new Uri('http://example.com/?a=ö<');
+echo "{$uri->getQuery(Uri::URI_ENCODE_3986)} \n"; // -> "a=%C3%B6%3C"
+```
+
+
 ### Host options
 
 #### The `IDN_ENCODE` option
@@ -425,7 +455,7 @@ $clone->toString(); // -> "path/somewhere/"
 
 ## Extension methods
 
-These methods are now part of the PSR-7 UriInterface.
+These methods are not part of the PSR-7 UriInterface.
 
 ### Representation methods
 

@@ -26,6 +26,9 @@ class Uri implements JsonSerializable, Stringable, UriInterface
     public const IDNA = 8; // @deprecated, replaced by IDN_ENCODE
     public const IDN_ENCODE = 16; // IDN-encode host
     public const IDN_DECODE = 32; // IDN-decode host
+    public const URI_DECODE = 64; // Decoded URI
+    public const URI_ENCODE = 128; // Minimal URI encoded
+    public const URI_ENCODE_3986 = 256; // URI encoded RFC 3986
 
     private const RE_MAIN = '!^(?P<schemec>(?P<scheme>[^:/?#]+):)?(?P<authorityc>//(?P<authority>[^/?#]*))?'
                           . '(?P<path>[^?#]*)(?P<queryc>\?(?P<query>[^#]*))?(?P<fragmentc>#(?P<fragment>.*))?$!';
@@ -119,7 +122,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         if ($host === '') {
             return '';
         }
-        $userinfo = $this->formatComponent($this->getUserInfo(), '', '@');
+        $userinfo = $this->formatComponent($this->getUserInfo($flags), '', '@');
         $port = $this->formatComponent($this->getPort($flags), ':');
         return "{$userinfo}{$host}{$port}";
     }
@@ -131,8 +134,8 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getUserInfo(int $flags = 0): string
     {
-        $user = $this->formatComponent($this->user);
-        $pass = $this->formatComponent($this->pass, ':');
+        $user = $this->formatComponent($this->uriOutput($this->user, $flags));
+        $pass = $this->formatComponent($this->uriOutput($this->pass ?? '', $flags), ':');
         return $user === '' ? '' : "{$user}{$pass}";
     }
 
@@ -184,7 +187,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         if ($flags & self::ABSOLUTE_PATH && substr($path, 0, 1) !== '/') {
             $path = "/{$path}";
         }
-        return $path;
+        return $this->uriOutput($path, $flags, '\/:@');
     }
 
     /**
@@ -194,7 +197,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getQuery(int $flags = 0): string
     {
-        return $this->query;
+        return $this->uriOutput($this->query, $flags, '\/:@?');
     }
 
     /**
@@ -204,7 +207,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      */
     public function getFragment(int $flags = 0): string
     {
-        return $this->fragment;
+        return $this->uriOutput($this->fragment, $flags, '\/:@?'); ;
     }
 
 
@@ -512,27 +515,27 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         if ($flags & self::ABSOLUTE_PATH && substr($path, 0, 1) !== '/') {
             $path = "/{$path}";
         }
-        $this->path = $this->uriEncode($path, $flags);
+        $this->path = $this->uriDecode($path);
     }
 
     protected function setQuery(string $query, int $flags = 0): void
     {
-        $this->query = $this->uriEncode($query, $flags, '?');
+        $this->query = $this->uriDecode($query);
     }
 
     protected function setFragment(string $fragment, int $flags = 0): void
     {
-        $this->fragment = $this->uriEncode($fragment, $flags, '?');
+        $this->fragment = $this->uriDecode($fragment);
     }
 
     protected function setUser(string $user, int $flags = 0): void
     {
-        $this->user = $this->uriEncode($user, $flags, '?');
+        $this->user = $this->uriDecode($user);
     }
 
     protected function setPassword(string|null $pass, int $flags = 0): void
     {
-        $this->pass = $pass === null ? null : $this->uriEncode($pass, $flags, '?');
+        $this->pass = $pass === null ? null : $this->uriDecode($pass);
     }
 
     protected function setUserInfo(string $user = '', string|null $pass = null, int $flags = 0): void
@@ -579,6 +582,27 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         return $clone;
     }
 
+    private function uriOutput(string $source, int $flags = 0, string $keep = ''): string
+    {
+        if ($flags & self::URI_DECODE) {
+            return $source;
+        }
+
+        $unreserved = 'a-zA-Z0-9_\-\.~';
+        $subdelim = '!\$&\'\(\)\*\+,;=';
+        $char = '\pL';
+        $pct = '%(?![A-Fa-f0-9]{2}))';
+
+        $re = "/(?:[^%{$unreserved}{$subdelim}{$keep}]+|{$pct}/u";
+
+        if ($flags & self::URI_ENCODE) {
+            $re = "/(?:[^%{$unreserved}{$subdelim}{$keep}{$char}]+|{$pct}/u";
+        }
+        return preg_replace_callback($re, function ($matches) {
+            return rawurlencode($matches[0]);
+        }, $source);
+    }
+
     private function uriEncode(string $source, int $flags = 0, string $keep = ''): string
     {
         $exclude = "[^%\/:=&!\$'()*+,;@{$keep}]+";
@@ -589,6 +613,14 @@ class Uri implements JsonSerializable, Stringable, UriInterface
             } else {
                 return rawurlencode($matches[0]);
             }
+        }, $source);
+    }
+
+    private function uriDecode(string $source): string
+    {
+        $re = "/(%[A-Fa-f0-9]{2})/u";
+        return preg_replace_callback($re, function ($matches) {
+            return rawurldecode($matches[0]);
         }, $source);
     }
 
@@ -652,7 +684,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
             } elseif (is_array($value)) {
                 $a[$key] = $this->queryMerge($a[$key] ?? [], $b[$key] ?? []);
             } elseif (is_scalar($value)) {
-                $a[$key] = rawurldecode($b[$key]);
+                $a[$key] = $this->uriDecode($b[$key]);
             } else {
                 unset($a[$key]);
             }

@@ -556,8 +556,58 @@ class UriTest extends TestCase
             ['user', 'pass', 'user:pass', '@'],
             ['', 'pass', '', ''],
             ['with space', 'with%20space', 'with%20space:with%20space', '@'],
-            ['.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@:.-_~!$&\'()*+,;=:@', '@'],
+            ['.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=%3A%40:.-_~!$&\'()*+,;=%3A%40', '@'],
             ['ηßöø', '必Дあ', '%CE%B7%C3%9F%C3%B6%C3%B8:%E5%BF%85%D0%94%E3%81%82', '@'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideValidUserInfosDecoded
+     */
+    #[DataProvider('provideValidUserInfosDecoded')]
+    public function testValidUserInfoDecoded($user, $pass, $expected, $include): void
+    {
+        $uri = (new Uri('http://domain.tld'))->withUserInfo($user, $pass);
+        $this->assertSame($expected, $uri->getUserInfo(Uri::URI_DECODE));
+        $this->assertSame("{$expected}{$include}domain.tld", $uri->getAuthority(Uri::URI_DECODE));
+        $this->assertSame("http://{$uri->getAuthority()}", (string)$uri);
+    }
+
+    public static function provideValidUserInfosDecoded(): array
+    {
+        return [
+            ['', '', '', ''],
+            ['user', '', 'user', '@'],
+            ['user', 'pass', 'user:pass', '@'],
+            ['', 'pass', '', ''],
+            ['with space', 'with%20space', 'with space:with space', '@'],
+            ['.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@:.-_~!$&\'()*+,;=:@', '@'],
+            ['ηßöø', '必Дあ', 'ηßöø:必Дあ', '@'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideValidUserInfosEncoded
+     */
+    #[DataProvider('provideValidUserInfosEncoded')]
+    public function testValidUserInfoEncoded($user, $pass, $expected, $include): void
+    {
+        $uri = (new Uri('http://domain.tld'))->withUserInfo($user, $pass);
+        $this->assertSame($expected, $uri->getUserInfo(Uri::URI_ENCODE));
+        $this->assertSame("{$expected}{$include}domain.tld", $uri->getAuthority(Uri::URI_ENCODE));
+        $this->assertSame("http://{$uri->getAuthority()}", (string)$uri);
+    }
+
+    public static function provideValidUserInfosEncoded(): array
+    {
+        return [
+            ['', '', '', ''],
+            ['user', '', 'user', '@'],
+            ['user', 'pass', 'user:pass', '@'],
+            ['', 'pass', '', ''],
+            ['with space', 'with%20space', 'with%20space:with%20space', '@'],
+            ['.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=:@', '.-_~!$&\'()*+,;=%3A%40:.-_~!$&\'()*+,;=%3A%40', '@'],
+            ['ηßöø', '必Дあ', 'ηßöø:必Дあ', '@'],
         ];
     }
 

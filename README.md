@@ -78,6 +78,8 @@ These can be added as last argument in all `get` and `with` methods, plus the `t
 * `ABSOLUTE_PATH` - Will cause path to use absolute form, i.e. starting with `/`
 * `NORMALIZE_PATH` - Will attempt to normalize path
 * `IDN_ENCODE` / `IDN_DECODE` - Encode or decode IDN-format for non-ASCII host
+* `URI_DECODE` / `URI_ENCODE` / `URI_ENCODE_3986` - Encode or decode URI components
+
 
 ### Examples
 
@@ -101,6 +103,7 @@ $uri->getHost(Uri::IDN_ENCODE); // => 'xn--zca0cg32z7rau82strvd.com'
 
 | Version | PHP | |
 | --- | --- | --- |
+| `2.1` | `^8.0` | URI encode/decode options |
 | `2.0` | `^8.0` | Query helpers, with([]) and getComponents() methods, IDN encode/decode |
 | `1.3` | `^7.4\|^8.0` |  |
 | `1.2` | `^7.4\|^8.0` | IDNA modifier |
