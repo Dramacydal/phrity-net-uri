@@ -12,13 +12,12 @@ namespace Phrity\Net;
 use InvalidArgumentException;
 use JsonSerializable;
 use Psr\Http\Message\UriInterface;
-use Stringable;
 use TypeError;
 
 /**
  * Net\Uri class.
  */
-class Uri implements JsonSerializable, Stringable, UriInterface
+class Uri implements JsonSerializable, UriInterface
 {
     public const REQUIRE_PORT = 1; // Always include port, explicit or default
     public const ABSOLUTE_PATH = 2; // Enforce absolute path
@@ -81,9 +80,9 @@ class Uri implements JsonSerializable, Stringable, UriInterface
     private string $scheme = '';
     private bool $authority = false;
     private string $host = '';
-    private int|null $port = null;
+    private ?int $port = null;
     private string $user = '';
-    private string|null $pass = null;
+    private ?string $pass = null;
     private string $path = '';
     private string $query = '';
     private string $fragment = '';
@@ -164,7 +163,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      * @param int $flags Optional modifier flags
      * @return null|int The URI port
      */
-    public function getPort(int $flags = 0): int|null
+    public function getPort(int $flags = 0): ?int
     {
         $default = self::$port_defaults[$this->scheme] ?? null;
         if ($flags & self::REQUIRE_PORT) {
@@ -235,7 +234,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      * @param int $flags Optional modifier flags
      * @return static A new instance with the specified user information
      */
-    public function withUserInfo(string $user, string|null $password = null, int $flags = 0): UriInterface
+    public function withUserInfo(string $user, ?string $password = null, int $flags = 0): UriInterface
     {
         $clone = $this->clone($flags);
         $clone->setUserInfo($user, $password);
@@ -263,7 +262,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      * @return static A new instance with the specified port
      * @throws \InvalidArgumentException for invalid ports
      */
-    public function withPort(int|null $port, int $flags = 0): UriInterface
+    public function withPort(?int $port, int $flags = 0): UriInterface
     {
         $clone = $this->clone($flags);
         $clone->setPort($port, $flags);
@@ -435,7 +434,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      * @param int $flags Optional modifier flags
      * @return array|string|null Query item value
      */
-    public function getQueryItem(string $name, int $flags = 0): array|string|null
+    public function getQueryItem(string $name, int $flags = 0)
     {
         parse_str($this->getQuery(), $result);
         return $result[$name] ?? null;
@@ -466,7 +465,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
      * @param int $flags Optional modifier flags
      * @return static A new instance with the added query items
      */
-    public function withQueryItem(string $name, array|string|null $value, int $flags = 0): UriInterface
+    public function withQueryItem(string $name, $value, int $flags = 0): UriInterface
     {
         return $this->withQueryItems([$name => $value], $flags);
     }
@@ -474,7 +473,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
 
     // ---------- Protected helper methods ----------------------------------------------------------------------------
 
-    protected function setPort(int|null $port, int $flags = 0): void
+    protected function setPort(?int $port, int $flags = 0): void
     {
         if ($port !== null && ($port < 0 || $port > 65535)) {
             throw new InvalidArgumentException("Invalid port '{$port}'");
@@ -533,12 +532,12 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         $this->user = $this->uriDecode($user);
     }
 
-    protected function setPassword(string|null $pass, int $flags = 0): void
+    protected function setPassword(?string $pass, int $flags = 0): void
     {
         $this->pass = $pass === null ? null : $this->uriDecode($pass);
     }
 
-    protected function setUserInfo(string $user = '', string|null $pass = null, int $flags = 0): void
+    protected function setUserInfo(string $user = '', ?string $pass = null, int $flags = 0): void
     {
         $this->setUser($user);
         $this->setPassword($pass);
@@ -611,7 +610,7 @@ class Uri implements JsonSerializable, Stringable, UriInterface
         }, $source);
     }
 
-    private function formatComponent(string|int|null $value, string $before = '', string $after = ''): string
+    private function formatComponent($value, string $before = '', string $after = ''): string
     {
         $string = strval($value);
         return $string === '' ? '' : "{$before}{$string}{$after}";
